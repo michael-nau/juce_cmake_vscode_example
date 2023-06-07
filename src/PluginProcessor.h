@@ -62,6 +62,18 @@ class TestpluginAudioProcessor : public juce::AudioProcessor {
                                            createParameters()};
 
  private:
+  using Filter = juce::dsp::IIR::Filter<float>;
+
+  using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
+
+  // declare a mono chain, representing one channel of audio (L or R)
+  using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+
+  // create 2 instances of the mono chain
+  MonoChain leftChain, rightChain;
+
+  enum ChainPositions { LowCut, Peak, HighCut };
+
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestpluginAudioProcessor)
 };
