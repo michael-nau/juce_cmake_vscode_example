@@ -10,7 +10,6 @@
 
 #include "PluginEditor.h"
 
-
 //==============================================================================
 TestpluginAudioProcessor::TestpluginAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -147,7 +146,7 @@ bool TestpluginAudioProcessor::hasEditor() const {
 }
 
 juce::AudioProcessorEditor *TestpluginAudioProcessor::createEditor() {
-  return new TestpluginAudioProcessorEditor(*this);
+  return new GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -163,6 +162,86 @@ void TestpluginAudioProcessor::setStateInformation(const void *data,
   // You should use this method to restore your parameters from this memory
   // block, whose contents will have been created by the getStateInformation()
   // call.
+}
+
+/* This is where we declare the parameters that we want to use in our plugin
+ As we are making a EQ plugin we will need 3 parameters, one for each band (low,
+ mid, high) we will also need a parameter for the following:
+ 1. gain of each band
+ 2. frequency of each band
+ 3. slope of the low and high bands
+ 4. 'quality' of the mid band i.e the bandwidth
+ 5.  master gain of the plugin
+ 6. band toggle buttons
+*/
+juce::AudioProcessorValueTreeState::ParameterLayout
+TestpluginAudioProcessor::createParameters() {
+  juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+  float minGain = -24.0f;
+  float maxGain = 24.0f;
+  float gainStep = 0.1f;
+  float freqStep = 1.0f;
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "lowGain", "Low Gain",
+      juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "midGain", "Mid Gain",
+      juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "highGain", "High Gain",
+      juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "masterGain", "Master Gain",
+      juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "lowFreq", "Low Freq",
+      juce::NormalisableRange<float>(20.0f, 200.0f, freqStep), 20.0f, "Hz"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "midFreq", "Mid Freq",
+      juce::NormalisableRange<float>(200.0f, 2000.0f, freqStep), 200.0f, "Hz"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "highFreq", "High Freq",
+      juce::NormalisableRange<float>(2000.0f, 20000.0f, freqStep), 2000.0f,
+      "Hz"));
+
+  // create a string array for the slope dropdown menu
+  juce::StringArray stringArray;
+  for (int i = 0; i < 10; i++) {
+    juce::String str;
+    str << (12 + i * 12) << " dB/oct";
+    stringArray.add(str);
+  }
+
+  layout.add(std::make_unique<juce::AudioParameterChoice>(
+      "lowSlope", "Low Slope", stringArray, 0.0f, ""));
+
+  layout.add(std::make_unique<juce::AudioParameterChoice>(
+      "highSlope", "High Slope", stringArray, 0.0f, ""));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "midQ", "Mid Q", juce::NormalisableRange<float>(0.1f, 10.0f, 0.1f), 0.1f,
+      ""));
+
+  layout.add(std::make_unique<juce::AudioParameterBool>(
+
+      "lowToggle", "Low Toggle", false));
+
+  layout.add(std::make_unique<juce::AudioParameterBool>(
+
+      "midToggle", "Mid Toggle", false));
+
+  layout.add(std::make_unique<juce::AudioParameterBool>("highToggle",
+                                                        "High Toggle", false));
+
+  return layout;
 }
 
 //==============================================================================

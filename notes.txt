@@ -1,0 +1,4 @@
+Need to make AudioProcessorValueTreeState
+- this is the container that holds all the parameters for the GUI
+
+processBlock is where we do all the dsp

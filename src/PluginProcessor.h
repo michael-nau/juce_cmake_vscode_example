@@ -52,6 +52,15 @@ class TestpluginAudioProcessor : public juce::AudioProcessor {
   void getStateInformation(juce::MemoryBlock &destData) override;
   void setStateInformation(const void *data, int sizeInBytes) override;
 
+  // this is the function that creates the parameters | required by apvts below
+  static juce::AudioProcessorValueTreeState::ParameterLayout createParameters();
+
+  // need to declare audioProcessorValueTreeState here so we can attach the
+  // parameters to it and display in the GUI it needs to be pulbic so the GUI
+  // can see it
+  juce::AudioProcessorValueTreeState apvts{*this, nullptr, "Parameters",
+                                           createParameters()};
+
  private:
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestpluginAudioProcessor)
