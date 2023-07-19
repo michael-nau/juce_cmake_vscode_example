@@ -47,7 +47,9 @@
         "program": "${command:cmake.launchTargetPath}",
         "args": [],
         "cwd": "${workspaceFolder}",
-        "preLaunchTask": "build",
+        "postDebugTask": {
+          "task": "Build PlugIn",
+        }
       },
     ]
   },

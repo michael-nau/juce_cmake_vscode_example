@@ -10,6 +10,15 @@
 
 #include <JuceHeader.h>
 
+struct ChainSettings {
+  float midFreq{0}, midGainInDecibels{0}, midQuality{1.f};
+  float lowCutFreq{0}, highCutFreq{0};
+  int lowCutSlope{0}, highCutSlope{0};
+  float lowGainInDecibels{0}, highGainInDecibels{0}, masterGainInDecibels{0};
+  bool lowToggle{true}, midToggle{true}, highToggle{true};
+};
+
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState &apvts);
 //==============================================================================
 /**
  */
@@ -67,12 +76,19 @@ class TestpluginAudioProcessor : public juce::AudioProcessor {
   using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
 
   // declare a mono chain, representing one channel of audio (L or R)
-  using MonoChain = juce::dsp::ProcessorChain<CutFilter, Filter, CutFilter>;
+  using MonoChain =
+      juce::dsp::ProcessorChain<CutFilter, Filter,
+                                CutFilter>;  // if implementing boost - need to
+                                             // add it here
 
   // create 2 instances of the mono chain
   MonoChain leftChain, rightChain;
 
-  enum ChainPositions { LowCut, Peak, HighCut };
+  enum ChainPositions {
+    LowCut,
+    Peak,
+    HighCut
+  };  // equivalent to the mono chain
 
   //==============================================================================
   JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestpluginAudioProcessor)

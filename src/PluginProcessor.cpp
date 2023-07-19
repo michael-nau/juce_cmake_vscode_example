@@ -82,7 +82,7 @@ void TestpluginAudioProcessor::prepareToPlay(double sampleRate,
   // Use this method as the place to do any pre-playback
   // initialisation that you need..
 
-  juce::dsp::ProcessSpec spec;
+  juce::dsp::ProcessSpec spec{};
 
   spec.maximumBlockSize = samplesPerBlock;
 
@@ -92,6 +92,20 @@ void TestpluginAudioProcessor::prepareToPlay(double sampleRate,
 
   leftChain.prepare(spec);
   rightChain.prepare(spec);
+
+  auto chainSettings = getChainSettings(apvts);
+
+  auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+      sampleRate, chainSettings.midFreq, chainSettings.midQuality,
+      juce::Decibels::decibelsToGain(chainSettings.midGainInDecibels));
+
+  // TODO: Add coefficients for low and high filters and implement toggle
+  // buttons
+
+  *leftChain.get<ChainPositions::Peak>().coefficients =
+      *peakCoefficients;  // expects an idx, we create an enum - also need to
+                          // dereference to get coeffients
+  *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
 }
 
 void TestpluginAudioProcessor::releaseResources() {
@@ -138,6 +152,17 @@ void TestpluginAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
     buffer.clear(i, 0, buffer.getNumSamples());
 
+  auto chainSettings = getChainSettings(apvts);
+
+  auto peakCoefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+      getSampleRate(), chainSettings.midFreq, chainSettings.midQuality,
+      juce::Decibels::decibelsToGain(chainSettings.midGainInDecibels));
+
+  *leftChain.get<ChainPositions::Peak>().coefficients =
+      *peakCoefficients;  // expects an idx, we create an enum - also need to
+                          // dereference to get coeffients
+  *rightChain.get<ChainPositions::Peak>().coefficients = *peakCoefficients;
+
   juce::dsp::AudioBlock<float> block(buffer);
 
   auto leftBlock = block.getSingleChannelBlock(0);
@@ -176,6 +201,28 @@ void TestpluginAudioProcessor::setStateInformation(const void *data,
   // call.
 }
 
+ChainSettings getChainSettings(juce::AudioProcessorValueTreeState &apvts) {
+  ChainSettings settings;
+  settings.highCutFreq = apvts.getRawParameterValue("highFreq")->load();
+  settings.highGainInDecibels = apvts.getRawParameterValue("highGain")->load();
+  settings.highCutSlope = apvts.getRawParameterValue("highSlope")->load();
+
+  settings.midFreq = apvts.getRawParameterValue("midFreq")->load();
+  settings.midGainInDecibels = apvts.getRawParameterValue("midGain")->load();
+  settings.midQuality = apvts.getRawParameterValue("midQ")->load();
+
+  settings.lowCutFreq = apvts.getRawParameterValue("lowFreq")->load();
+  settings.lowGainInDecibels = apvts.getRawParameterValue("lowGain")->load();
+  settings.lowCutSlope = apvts.getRawParameterValue("lowSlope")->load();
+
+  // toggle buttons
+  settings.lowToggle = apvts.getRawParameterValue("lowToggle");
+  settings.midToggle = apvts.getRawParameterValue("midToggle");
+  settings.highToggle = apvts.getRawParameterValue("highToggle");
+
+  return settings;
+}
+
 /* This is where we declare the parameters that we want to use in our plugin
  As we are making a EQ plugin we will need 3 parameters, one for each band (low,
  mid, high) we will also need a parameter for the following:
@@ -196,12 +243,29 @@ TestpluginAudioProcessor::createParameters() {
   float freqStep = 1.0f;
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "lowGain", "Low Gain",
-      juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
+      "midFreq", "Mid Freq",
+      juce::NormalisableRange<float>(200.0f, 2000.0f, freqStep), 200.0f, "Hz"));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
       "midGain", "Mid Gain",
       juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "midQ", "Mid Q", juce::NormalisableRange<float>(0.1f, 10.0f, 0.1f), 0.1f,
+      ""));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "lowFreq", "Low Freq",
+      juce::NormalisableRange<float>(20.0f, 200.0f, freqStep), 20.0f, "Hz"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "lowGain", "Low Gain",
+      juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
+
+  layout.add(std::make_unique<juce::AudioParameterFloat>(
+      "highFreq", "High Freq",
+      juce::NormalisableRange<float>(2000.0f, 20000.0f, freqStep), 2000.0f,
+      "Hz"));
 
   layout.add(std::make_unique<juce::AudioParameterFloat>(
       "highGain", "High Gain",
@@ -210,19 +274,6 @@ TestpluginAudioProcessor::createParameters() {
   layout.add(std::make_unique<juce::AudioParameterFloat>(
       "masterGain", "Master Gain",
       juce::NormalisableRange<float>(minGain, maxGain, gainStep), 0.0f, "dB"));
-
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "lowFreq", "Low Freq",
-      juce::NormalisableRange<float>(20.0f, 200.0f, freqStep), 20.0f, "Hz"));
-
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "midFreq", "Mid Freq",
-      juce::NormalisableRange<float>(200.0f, 2000.0f, freqStep), 200.0f, "Hz"));
-
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "highFreq", "High Freq",
-      juce::NormalisableRange<float>(2000.0f, 20000.0f, freqStep), 2000.0f,
-      "Hz"));
 
   // create a string array for the slope dropdown menu
   juce::StringArray stringArray;
@@ -237,10 +288,6 @@ TestpluginAudioProcessor::createParameters() {
 
   layout.add(std::make_unique<juce::AudioParameterChoice>(
       "highSlope", "High Slope", stringArray, 0.0f, ""));
-
-  layout.add(std::make_unique<juce::AudioParameterFloat>(
-      "midQ", "Mid Q", juce::NormalisableRange<float>(0.1f, 10.0f, 0.1f), 0.1f,
-      ""));
 
   layout.add(std::make_unique<juce::AudioParameterBool>(
 

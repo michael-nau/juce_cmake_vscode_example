@@ -10,3 +10,25 @@ If you want a sharper slope you need to make a chain of filters
 To run and debug
 - Run audioPluginHost to pass in signal (filtergraph is setup)
 - Do this by running command 'Run Build Task' is vscode - it will launch
+
+General notes
+- Define structure of code in Header file i.e object schemas, name of functions and their parameters - like a d.ts file
+- cpp file is the implementation - where the actual function code is written
+
+Apvts notes
+- Setting up parameters
+    - ???
+- Accessing parameters
+    1. apvts.getParameter("Param")->getValue(); // this gives us a normalised value between 0 & 1
+    2. apvts.getRawParameterValue("Param")->load(); // this returns the real value in the units we declare i.e kHz dB etc
+
+- Assigning them for playback
+    - Retrieve them in the prepareToPlay by calling getChainSettings(apvts); (declared by us)
+    - Assign coefficients to filters in PrepareToPlay also
+    - Remeber to convert dB to gain units juce::Decibels::decibelsToGain(db)
+    - IIR::Coefficients are Reference counted objects that owns a juce::Array<float>. 
+        Its helper functions return instances allocated on the heap. 
+        Need to dereference them to copy the underlying coefficients array
+
+    - processBlock is where we do all the dsp - updating coeffients etc
+        - Always update parameters BEFORE processing audio (juce::dsp::AudioBlock methods)
