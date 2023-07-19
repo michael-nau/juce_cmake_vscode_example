@@ -6,3 +6,7 @@ processBlock is where we do all the dsp
 If you want a sharper slope you need to make a chain of filters
 - define a ProcessorChain
 - pass in a ProcessContext
+
+To run and debug
+- Run audioPluginHost to pass in signal (filtergraph is setup)
+- Do this by running command 'Run Build Task' is vscode - it will launch

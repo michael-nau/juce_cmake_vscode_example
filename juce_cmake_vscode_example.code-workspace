@@ -46,7 +46,41 @@
         "name": "CMake Debug",
         "program": "${command:cmake.launchTargetPath}",
         "args": [],
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "build",
+      },
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Launch AudioPluginHost",
+        "command": "${workspaceFolder}/lib/JUCE/extras/AudioPluginHost/Builds/MacOSX/build/Debug/AudioPluginHost.app/Contents/MacOS/AudioPluginHost",
+        "type": "shell",
+        "args": [],
+        // "problemMatcher": [
+        //   "$tsc"
+        // ],
+        "presentation": {
+          "reveal": "always"
+        },
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "dependsOn": [
+          "Build PlugIn"
+        ]
+      },
+      {
+        "label": "Build PlugIn",
+        "type": "shell",
+        "command": "/opt/homebrew/bin/cmake --build '/Users/michaelnaughton/coding projects/juce/juce_cmake_vscode_example/build' --config Debug --target SimpleEQ_VST3 -j 12 --",
+        "args": [],
+        "group": {
+          "kind": "build",
+        }
       }
     ]
   }
